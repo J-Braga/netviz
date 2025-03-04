@@ -1,0 +1,218 @@
+function createNetworkDiagram(containerId, options = {}) {
+  const width = options.width || 800;
+  const height = options.height || 600;
+
+  // Switch properties
+  const switchWidth = 120;
+  const switchHeight = 50;
+  const portsPerRow = 12;  // 24-port switch (12 ports per row)
+  const portRadius = 3;
+  const portSpacingX = 8;
+  const portSpacingY = 10;
+
+  // Initialize SVG
+  const container = d3.select(`#${containerId}`);
+  const svg = container
+    .append("svg")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("will-change", "transform")
+    .style("contain", "layout paint");
+
+  // Groups for layers
+  const linkGroup = svg.append("g").attr("class", "links");
+  const nodeGroup = svg.append("g").attr("class", "nodes");
+
+  // State
+  let nodes = null;
+  let links = null;
+  const nodeMap = new Map();
+  let draggedNode = null;
+
+  // Normalize data
+  function normalizeData(data) {
+    const nodes = data.nodes || [];
+    const links = data.links.map(link => ({
+      source: typeof link.source === "string" ? link.source : link.source.id,
+      target: typeof link.target === "string" ? link.target : link.target.id
+    }));
+    return { nodes, links };
+  }
+
+  // Update links for a specific node
+  function updateLinks(draggedNode) {
+    links
+      .filter(d => d.source.id === draggedNode.id || d.target.id === draggedNode.id)
+      .attr("x1", d => nodeMap.get(d.source).x + switchWidth / 2)
+      .attr("y1", d => nodeMap.get(d.source).y + switchHeight / 2)
+      .attr("x2", d => nodeMap.get(d.target).x + switchWidth / 2)
+      .attr("y2", d => nodeMap.get(d.target).y + switchHeight / 2);
+  }
+
+  // Find the closest node to the mouse position
+  function findClosestNode(x, y) {
+    return nodeMap.values().find(node => {
+      return (
+        x >= node.x &&
+        x <= node.x + switchWidth &&
+        y >= node.y &&
+        y <= node.y + switchHeight
+      );
+    });
+  }
+
+  // Single SVG drag handler
+  function setupDrag() {
+    svg.on("mousedown", event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const [mouseX, mouseY] = d3.pointer(event, svg.node());
+      draggedNode = findClosestNode(mouseX, mouseY);
+
+      if (draggedNode) {
+        const group = nodes.filter(d => d.id === draggedNode.id);
+        group.raise().classed("dragging", true);
+
+        d3.select("body").on("mousemove.drag", moveEvent => {
+          const [newX, newY] = d3.pointer(moveEvent, svg.node());
+          draggedNode.x = Math.max(0, Math.min(width - switchWidth, newX));
+          draggedNode.y = Math.max(0, Math.min(height - switchHeight, newY));
+
+          group.attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+          updateLinks(draggedNode);
+        });
+
+        d3.select("body").on("mouseup.drag", () => {
+          group.classed("dragging", false);
+          updateLinks(draggedNode);
+          draggedNode = null;
+
+          d3.select("body").on("mousemove.drag", null);
+          d3.select("body").on("mouseup.drag", null);
+        });
+      }
+    });
+  }
+
+  // Update function
+  function update(data) {
+    const { nodes: newNodes, links: newLinks } = normalizeData(data);
+
+    // Assign initial positions
+    newNodes.forEach((node, i) => {
+      if (!node.x || !node.y) {
+        node.x = width / 2 + Math.cos(i) * 100;
+        node.y = height / 2 + Math.sin(i) * 100;
+      }
+      nodeMap.set(node.id, node);
+    });
+
+    // Update links
+    links = linkGroup
+      .selectAll(".link")
+      .data(newLinks)
+      .join("line")
+      .attr("class", "link")
+      .attr("x1", d => nodeMap.get(d.source).x + switchWidth / 2)
+      .attr("y1", d => nodeMap.get(d.source).y + switchHeight / 2)
+      .attr("x2", d => nodeMap.get(d.target).x + switchWidth / 2)
+      .attr("y2", d => nodeMap.get(d.target).y + switchHeight / 2)
+      .style("stroke", "black")
+      .style("stroke-width", 2);
+
+    // Update nodes (switches)
+    nodes = nodeGroup
+      .selectAll(".node-group")
+      .data(newNodes, d => d.id)
+      .join(
+        enter => {
+          const group = enter.append("g")
+            .attr("class", "node-group")
+            .attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+          // Draw switch body
+          group.append("rect")
+            .attr("class", "switch")
+            .attr("width", switchWidth)
+            .attr("height", switchHeight)
+            .attr("rx", 5)
+            .style("fill", "steelblue")
+            .style("stroke", "black")
+            .style("stroke-width", 2);
+
+          // Draw ports in two rows
+          for (let i = 0; i < portsPerRow; i++) {
+            for (let j = 0; j < 2; j++) {
+              group.append("circle")
+                .attr("class", "port")
+                .attr("cx", (switchWidth - portsPerRow * portSpacingX) / 2 + i * portSpacingX)
+                .attr("cy", switchHeight - 15 + j * portSpacingY)
+                .attr("r", portRadius)
+                .style("fill", "gray")
+                .style("stroke", "black");
+            }
+          }
+
+          // Add switch label
+          group.append("text")
+            .attr("x", switchWidth / 2)
+            .attr("y", switchHeight / 3)
+            .attr("dy", ".35em")
+            .style("fill", "white")
+            .style("font-family", "Arial, sans-serif")
+            .style("font-size", "12px")
+            .style("text-anchor", "middle")
+            .text(d => `Switch ${d.id}`);
+
+          return group;
+        },
+        update => update.attr("transform", d => `translate(${d.x}, ${d.y})`)
+      );
+
+    setupDrag();
+  }
+
+  // Destroy function
+  function destroy() {
+    svg.remove();
+    nodeMap.clear();
+  }
+
+  // Initial setup
+  update({ nodes: [], links: [] });
+
+  // Return public API
+  return {
+    update,
+    destroy
+  };
+}
+
+// Example usage
+document.addEventListener("DOMContentLoaded", () => {
+  const network = createNetworkDiagram("network-container", {
+    width: 800,
+    height: 600
+  });
+
+  const data = {
+    nodes: [
+      { id: "A" },
+      { id: "B" },
+      { id: "C" },
+      { id: "D" }
+    ],
+    links: [
+      { source: "A", target: "B" },
+      { source: "B", target: "C" },
+      { source: "C", target: "D" },
+      { source: "D", target: "A" }
+    ]
+  };
+
+  network.update(data);
+});
+
