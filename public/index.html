@@ -5,10 +5,40 @@
     <link rel="stylesheet" href="/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script type="module" src="./js/main.js"></script>
 </head>
 <body>
-    <!-- Firewall Rule Input Fields (Now in Columns) -->
+    <div id="firewall-rule-container">
+        <h2>Firewall Rule Check</h2>
+        <div id="firewall-rule-fields">
+            <label>Source Address: <input type="text" id="source-address"></label>
+            <label>Source Port: <input type="text" id="source-port"></label>
+            <label>Destination Address: <input type="text" id="destination-address"></label>
+            <label>Destination Port: <input type="text" id="destination-port"></label>
+            <label>Application: <input type="text" id="application"></label>
+            <button id="check-rule">Check Flow</button>
+        </div>
+        <p id="rule-result"></p>
+    </div>
+    <div id="toggle-container">
+        <button id="toggle-l2">Toggle L2 Links</button>
+        <button id="toggle-l3">Toggle L3 Links</button>
+    </div>
+    <h2>Network Diagram</h2>
+    <div id="network-container"></div>
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="module" src="/main.js"></script>
+</head>
+<body>
     <div id="firewall-rule-container">
         <h2>Firewall Rule Check</h2>
         <div id="firewall-rule-fields">
@@ -22,7 +52,6 @@
         <p id="rule-result"></p>
     </div>
 
-    <!-- Toggle Buttons -->
     <div id="toggle-container">
         <button id="toggle-l2">Toggle L2 Links</button>
         <button id="toggle-l3">Toggle L3 Links</button>
@@ -32,4 +61,4 @@
     <div id="network-container"></div>
 
 </body>
-</html>
+</html> -->

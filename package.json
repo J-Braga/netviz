@@ -1,20 +1,22 @@
 {
-  "name": "netv",
+  "name": "netviz",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/d3": "^7.4.3"
+    "@types/d3": "^7.4.3",
+    "@types/node": "^22.13.9"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.8.2"
   },
   "dependencies": {
     "d3": "^7.9.0"
   },
   "scripts": {
-    "start": "bun src/server.js",
-    "dev": "bun --watch src/server.js"
-}
+    "build": "bun build src/app/main.ts --outdir public --target browser",
+    "watch:build": "bun build src/app/main.ts --outdir public --target browser --watch",
+    "dev": "bun run watch:build & bun run --watch src/server.ts"
+  }
 }

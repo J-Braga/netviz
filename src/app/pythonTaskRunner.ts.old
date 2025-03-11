@@ -1,0 +1,93 @@
+// // pythonTaskRunner.ts
+// import { join } from "path"; // Bun provides this from the Node.js standard library
+
+// interface PythonTaskOptions {
+//   script: string; // Relative path to Python script (e.g., "process_data.py")
+//   args?: string[]; // Command-line arguments
+//   inputData?: any; // Data to pass via stdin
+//   timeoutMs?: number; // Max execution time
+// }
+
+// async function runPythonTask({
+//   script,
+//   args = [],
+//   inputData,
+//   timeoutMs = 30000, // Default 30s timeout
+// }: PythonTaskOptions): Promise<any> {
+//   // Construct the script path using Bun's process.cwd()
+//   const scriptPath = join(Bun.cwd(), "scripts", script); // Use Bun.cwd() explicitly
+
+//   // Spawn the Python process
+//   const process = Bun.spawn(
+//     ["python3", scriptPath, ...args],
+//     {
+//       stdin: inputData ? "pipe" : undefined,
+//       stdout: "pipe",
+//       stderr: "pipe",
+//       env: Bun.env, // Use Bun.env instead of process.env
+//     }
+//   );
+
+//   // Handle input data if provided
+//   if (inputData) {
+//     const encoder = new TextEncoder();
+//     const stdin = process.stdin;
+//     if (stdin) {
+//       stdin.write(encoder.encode(JSON.stringify(inputData)));
+//       await stdin.end(); // Close stdin to signal Python to process
+//     }
+//   }
+
+//   // Set up timeout
+//   const timeout = setTimeout(() => {
+//     process.kill(); // Kill the process if it takes too long
+//     throw new Error(`Python task timed out after ${timeoutMs}ms`);
+//   }, timeoutMs);
+
+//   // Capture output and errors
+//   const stdoutPromise = new Response(process.stdout).text();
+//   const stderrPromise = new Response(process.stderr).text();
+//   const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise]);
+
+//   // Wait for process to exit
+//   const exitCode = await process.exited;
+//   clearTimeout(timeout);
+
+//   // Check for errors
+//   if (exitCode !== 0) {
+//     throw new Error(`Python script failed (${exitCode}): ${stderr}`);
+//   }
+
+//   // Parse and return result
+//   try {
+//     return JSON.parse(stdout);
+//   } catch (e) {
+//     throw new Error(`Invalid JSON output from Python: ${stdout}`);
+//   }
+// }
+
+// // Example Bun server
+// Bun.serve({
+//   port: 3000,
+//   async fetch(req) {
+//     try {
+//       const result = await runPythonTask({
+//         script: "process_data.py",
+//         args: ["--verbose"],
+//         inputData: { value: 42 },
+//         timeoutMs: 10000,
+//       });
+//       return new Response(JSON.stringify({ success: true, data: result }), {
+//         headers: { "Content-Type": "application/json" },
+//       });
+//     } catch (error) {
+//       console.error("Python task error:", error);
+//       return new Response(JSON.stringify({ success: false, error: error.message }), {
+//         status: 500,
+//         headers: { "Content-Type": "application/json" },
+//       });
+//     }
+//   },
+// });
+
+// export { runPythonTask };
