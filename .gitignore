@@ -173,3 +173,5 @@ cython_debug/
 
 # Node/Bun
 node_modules/
+
+.DS_Store
